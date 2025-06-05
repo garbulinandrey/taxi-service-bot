@@ -2,7 +2,7 @@
  * @file index.ts
  * @description Основной файл бота такси-сервиса
  * @author garbulinandrey
- * @date 2025-06-05 14:42:07
+ * @date 2025-06-05 15:33:10
  * @copyright Yotaxi LLC
  */
 
@@ -69,9 +69,15 @@ bot.use((ctx, next) => {
  */
 async function updateMessage(ctx: MyContext, text: string, keyboard: any) {
     try {
+        // Если предыдущее сообщение было с фотографией или возникла ошибка при редактировании
         if (ctx.session.isPhotoMessage) {
-            const newMsg = await ctx.reply(text, keyboard);
+            // Отправляем новое сообщение с поддержкой Markdown
+            const newMsg = await ctx.reply(text, {
+                ...keyboard,
+                parse_mode: 'Markdown'
+            });
             
+            // Удаляем предыдущее сообщение
             if (ctx.session.messageId && ctx.chat) {
                 try {
                     await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
@@ -80,15 +86,46 @@ async function updateMessage(ctx: MyContext, text: string, keyboard: any) {
                 }
             }
             
+            // Обновляем ID сообщения в сессии
             ctx.session.messageId = newMsg.message_id;
             ctx.session.isPhotoMessage = false;
         } else {
-            await ctx.editMessageText(text, keyboard);
+            try {
+                // Пытаемся отредактировать существующее сообщение с поддержкой Markdown
+                await ctx.editMessageText(text, {
+                    ...keyboard,
+                    parse_mode: 'Markdown'
+                });
+            } catch (error) {
+                // Если не получилось отредактировать, отправляем новое сообщение
+                console.error('Ошибка при редактировании сообщения:', error);
+                const newMsg = await ctx.reply(text, {
+                    ...keyboard,
+                    parse_mode: 'Markdown'
+                });
+                
+                // Удаляем предыдущее сообщение
+                if (ctx.session.messageId && ctx.chat) {
+                    try {
+                        await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+                    } catch (deleteError) {
+                        console.error('Ошибка при удалении предыдущего сообщения:', deleteError);
+                    }
+                }
+                
+                // Обновляем ID сообщения в сессии
+                ctx.session.messageId = newMsg.message_id;
+                ctx.session.isPhotoMessage = false;
+            }
         }
     } catch (error) {
         console.error('Ошибка при обновлении сообщения:', error);
         
-        const newMsg = await ctx.reply(text, keyboard);
+        // В случае любой ошибки отправляем новое сообщение с поддержкой Markdown
+        const newMsg = await ctx.reply(text, {
+            ...keyboard,
+            parse_mode: 'Markdown'
+        });
         if (ctx.session.messageId && ctx.chat) {
             try {
                 await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
@@ -115,7 +152,10 @@ bot.command('start', async (ctx) => {
                 console.error('Ошибка при удалении предыдущего сообщения:', error);
             }
         }
-        const msg = await ctx.reply('Привет! Я чат-бот автопарка "Центральный". Выберите действие:', { ...mainKeyboard });
+        const msg = await ctx.reply('Привет! Я чат-бот автопарка "Центральный". Выберите действие:', { 
+            ...mainKeyboard,
+            parse_mode: 'Markdown'
+        });
         ctx.session.messageId = msg.message_id;
         ctx.session.isPhotoMessage = false;
     } catch (error) {
@@ -128,7 +168,7 @@ bot.command('start', async (ctx) => {
  */
 bot.action('work_question', async (ctx) => {
     try {
-        await updateMessage(ctx, workQuestionInfo, { ...workQuestionKeyboard });
+        await updateMessage(ctx, workQuestionInfo, workQuestionKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике вопросов по работе:', error);
     }
@@ -139,7 +179,7 @@ bot.action('work_question', async (ctx) => {
  */
 bot.action('sick_leave', async (ctx) => {
     try {
-        await updateMessage(ctx, sickLeaveInfo, { ...sickLeaveKeyboard });
+        await updateMessage(ctx, sickLeaveInfo, sickLeaveKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике больничного:', error);
     }
@@ -150,7 +190,7 @@ bot.action('sick_leave', async (ctx) => {
  */
 bot.action('program_help', async (ctx) => {
     try {
-        await updateMessage(ctx, programHelpInfo, { ...programHelpKeyboard });
+        await updateMessage(ctx, programHelpInfo, programHelpKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике помощи с программой:', error);
     }
@@ -161,7 +201,7 @@ bot.action('program_help', async (ctx) => {
  */
 bot.action('return_car', async (ctx) => {
     try {
-        await updateMessage(ctx, returnCarInfo, { ...returnCarKeyboard });
+        await updateMessage(ctx, returnCarInfo, returnCarKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике сдачи автомобиля:', error);
     }
@@ -183,7 +223,8 @@ bot.action('service', async (ctx) => {
         const mediaMsg = await ctx.replyWithMediaGroup([{
             type: 'photo',
             media: { source: './src/assets/images/service_map.png' },
-            caption: serviceInfo
+            caption: serviceInfo,
+            parse_mode: 'Markdown'
         } as InputMediaPhoto]);
 
         const keyboardMsg = await ctx.reply('Выберите действие:', { 
@@ -193,7 +234,8 @@ bot.action('service', async (ctx) => {
                     [{ text: 'Вопросы по работе автомобиля', callback_data: 'car_questions' }],
                     [{ text: 'Меню', callback_data: 'back_to_main' }]
                 ]
-            }
+            },
+            parse_mode: 'Markdown'
         });
 
         ctx.session.messageId = keyboardMsg.message_id;
@@ -221,7 +263,8 @@ bot.action('service_appointment', async (ctx) => {
                 inline_keyboard: [
                     [{ text: 'Меню', callback_data: 'back_to_main' }]
                 ]
-            }
+            },
+            parse_mode: 'Markdown'
         });
 
         ctx.session.messageId = msg.message_id;
@@ -249,7 +292,8 @@ bot.action('car_questions', async (ctx) => {
                     [{ text: 'Владимир Коротков', url: 'https://t.me/VV_Korotkov' }],
                     [{ text: 'Меню', callback_data: 'back_to_main' }]
                 ]
-            }
+            },
+            parse_mode: 'Markdown'
         });
 
         ctx.session.messageId = msg.message_id;
@@ -263,7 +307,7 @@ bot.action('car_questions', async (ctx) => {
  */
 bot.action('dtp', async (ctx) => {
     try {
-        await updateMessage(ctx, dtpInfo, { ...dtpKeyboard, parse_mode: 'Markdown' });
+        await updateMessage(ctx, dtpInfo, dtpKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике ДТП:', error);
     }
@@ -274,7 +318,7 @@ bot.action('dtp', async (ctx) => {
  */
 bot.action('dtp_night', async (ctx) => {
     try {
-        await updateMessage(ctx, dtpNightInfo, { ...dtpKeyboard, parse_mode: 'Markdown' });
+        await updateMessage(ctx, dtpNightInfo, dtpKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике ночного ДТП:', error);
     }
@@ -303,7 +347,8 @@ bot.action('element_driver', async (ctx) => {
                         [{ text: 'iPhone', url: URLS.IPHONE_DRIVER_APP }],
                         [{ text: 'Меню', callback_data: 'back_to_main' }]
                     ]
-                }
+                },
+                parse_mode: 'Markdown'
             }
         );
 
@@ -319,7 +364,7 @@ bot.action('element_driver', async (ctx) => {
  */
 bot.action('balance', async (ctx) => {
     try {
-        await updateMessage(ctx, balanceInfo, { ...balanceKeyboard });
+        await updateMessage(ctx, balanceInfo, balanceKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике баланса:', error);
     }
@@ -330,7 +375,7 @@ bot.action('balance', async (ctx) => {
  */
 bot.action('balance_add', async (ctx) => {
     try {
-        await updateMessage(ctx, balanceAddInfo, { ...balanceAddKeyboard });
+        await updateMessage(ctx, balanceAddInfo, balanceAddKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике пополнения баланса:', error);
     }
@@ -341,42 +386,12 @@ bot.action('balance_add', async (ctx) => {
  */
 bot.action('balance_withdraw', async (ctx) => {
     try {
-        await updateMessage(ctx, balanceWithdrawInfo, { ...balanceWithdrawKeyboard });
+        await updateMessage(ctx, balanceWithdrawInfo, balanceWithdrawKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике снятия денег:', error);
     }
 });
-// ... предыдущий код ...
-/**
- * Обработчик кнопки "Ссылки на группы"
- */
-bot.action('groups', async (ctx) => {
-    try {
-        if (ctx.session.messageId && ctx.chat) {
-            try {
-                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
-            } catch (error) {
-                console.error('Ошибка при удалении предыдущего сообщения:', error);
-            }
-        }
 
-        const msg = await ctx.reply(groupsInfo, {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: 'Чат Центральный и Yotaxi', url: 'https://t.me/+Vh5NhM54_V2lgJBP' }],
-                    [{ text: 'Розыгрыши здесь', url: 'https://t.me/yotaxi12' }],
-                    [{ text: 'Машины под выкуп', url: 'https://t.me/+62DE0gWGFBFlYWEy' }],
-                    [{ text: 'Помощь ТаксиЙо', url: 'https://t.me/+nFmk7sLJ-r41NmU6' }],
-                    [{ text: 'Меню', callback_data: 'back_to_main' }]
-                ]
-            }
-        });
-
-        ctx.session.messageId = msg.message_id;
-    } catch (error) {
-        console.error('Ошибка в обработчике групп:', error);
-    }
-});
 /**
  * Обработчик кнопки "Дальние поездки"
  */
@@ -401,7 +416,8 @@ bot.action('long_distance', async (ctx) => {
                         [{ text: 'Владимир Коротков', url: 'https://t.me/VV_Korotkov' }],
                         [{ text: 'Меню', callback_data: 'back_to_main' }]
                     ]
-                }
+                },
+                parse_mode: 'Markdown'
             }
         );
 
@@ -410,7 +426,7 @@ bot.action('long_distance', async (ctx) => {
     } catch (error) {
         console.error('Ошибка в обработчике дальних поездок:', error);
     }
-}); // Добавлена закрывающая скобка
+});
 
 /**
  * Обработчик кнопки "Жалобы/предложения"
@@ -431,7 +447,8 @@ bot.action('complaints', async (ctx) => {
                     [{ text: 'Офис', url: 'https://t.me/+79278835566' }],
                     [{ text: 'Меню', callback_data: 'back_to_main' }]
                 ]
-            }
+            },
+            parse_mode: 'Markdown'
         });
 
         ctx.session.messageId = msg.message_id;
@@ -443,7 +460,7 @@ bot.action('complaints', async (ctx) => {
 /**
  * Обработчик кнопки "Вопросы/Предложения по боту"
  */
-bot.action('bot_questions', async (ctx) => { // Изменено на 'bot_questions' для соответствия с mainKeyboard.ts
+bot.action('bot_questions', async (ctx) => {
     try {
         if (ctx.session.messageId && ctx.chat) {
             try {
@@ -459,7 +476,8 @@ bot.action('bot_questions', async (ctx) => { // Изменено на 'bot_quest
                     [{ text: 'Офис', url: 'https://t.me/+79278835566' }],
                     [{ text: 'Меню', callback_data: 'back_to_main' }]
                 ]
-            }
+            },
+            parse_mode: 'Markdown'
         });
 
         ctx.session.messageId = msg.message_id;
@@ -469,11 +487,43 @@ bot.action('bot_questions', async (ctx) => { // Изменено на 'bot_quest
 });
 
 /**
+ * Обработчик кнопки "Ссылки на группы"
+ */
+bot.action('groups', async (ctx) => {
+    try {
+        if (ctx.session.messageId && ctx.chat) {
+            try {
+                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+            } catch (error) {
+                console.error('Ошибка при удалении предыдущего сообщения:', error);
+            }
+        }
+
+        const msg = await ctx.reply(groupsInfo, {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Чат Центральный и Yotaxi', url: 'https://t.me/+Vh5NhM54_V2lgJBP' }],
+                    [{ text: 'Розыгрыши здесь', url: 'https://t.me/yotaxi12' }],
+                    [{ text: 'Машины под выкуп', url: 'https://t.me/+62DE0gWGFBFlYWEy' }],
+                    [{ text: 'Помощь ТаксиЙо', url: 'https://t.me/+nFmk7sLJ-r41NmU6' }],
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
+                ]
+            },
+            parse_mode: 'Markdown'
+        });
+
+        ctx.session.messageId = msg.message_id;
+    } catch (error) {
+        console.error('Ошибка в обработчике групп:', error);
+    }
+});
+
+/**
  * Обработчик для возврата в главное меню
  */
 bot.action('back_to_main', async (ctx) => {
     try {
-        await updateMessage(ctx, 'Выберите действие:', { ...mainKeyboard });
+        await updateMessage(ctx, 'Выберите действие:', mainKeyboard);
     } catch (error) {
         console.error('Ошибка при возврате в главное меню:', error);
     }
