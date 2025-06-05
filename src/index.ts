@@ -347,6 +347,7 @@ bot.action('balance_withdraw', async (ctx) => {
         console.error('Ошибка в обработчике снятия денег:', error);
     }
 });
+// ... предыдущий код ...
 
 /**
  * Обработчик кнопки "Дальние поездки"
@@ -376,4 +377,100 @@ bot.action('long_distance', async (ctx) => {
             }
         );
 
-        ctx.session
+        ctx.session.messageId = msg.message_id;
+        ctx.session.isPhotoMessage = true;
+    } catch (error) {
+        console.error('Ошибка в обработчике дальних поездок:', error);
+    }
+}); // Добавлена закрывающая скобка
+
+/**
+ * Обработчик кнопки "Жалобы/предложения"
+ */
+bot.action('complaints', async (ctx) => {
+    try {
+        if (ctx.session.messageId && ctx.chat) {
+            try {
+                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+            } catch (error) {
+                console.error('Ошибка при удалении предыдущего сообщения:', error);
+            }
+        }
+
+        const msg = await ctx.reply('Напишите, что по вашему мнению мы могли бы изменить, чтобы стать лучше для Вас.', {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Офис', url: 'https://t.me/+79278835566' }],
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
+                ]
+            }
+        });
+
+        ctx.session.messageId = msg.message_id;
+    } catch (error) {
+        console.error('Ошибка в обработчике жалоб и предложений:', error);
+    }
+});
+
+/**
+ * Обработчик кнопки "Вопросы/Предложения по боту"
+ */
+bot.action('bot_questions', async (ctx) => { // Изменено на 'bot_questions' для соответствия с mainKeyboard.ts
+    try {
+        if (ctx.session.messageId && ctx.chat) {
+            try {
+                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+            } catch (error) {
+                console.error('Ошибка при удалении предыдущего сообщения:', error);
+            }
+        }
+
+        const msg = await ctx.reply('Все предложения по боту можете направлять в офис менеджерам с пометкой Бот.\n+79278835566 Офис', {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Офис', url: 'https://t.me/+79278835566' }],
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
+                ]
+            }
+        });
+
+        ctx.session.messageId = msg.message_id;
+    } catch (error) {
+        console.error('Ошибка в обработчике обратной связи по боту:', error);
+    }
+});
+
+/**
+ * Обработчик для возврата в главное меню
+ */
+bot.action('back_to_main', async (ctx) => {
+    try {
+        await updateMessage(ctx, 'Выберите действие:', { ...mainKeyboard });
+    } catch (error) {
+        console.error('Ошибка при возврате в главное меню:', error);
+    }
+});
+
+/**
+ * Обработчик для неизвестных действий
+ */
+bot.action(/.+/, async (ctx) => {
+    try {
+        await ctx.answerCbQuery('Данная функция в разработке');
+    } catch (error) {
+        console.error('Ошибка в обработчике неизвестного действия:', error);
+    }
+});
+
+// Запуск бота
+bot.launch()
+    .then(() => {
+        console.log('Бот успешно запущен');
+    })
+    .catch((error) => {
+        console.error('Ошибка при запуске бота:', error);
+    });
+
+// Корректное завершение работы бота
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
