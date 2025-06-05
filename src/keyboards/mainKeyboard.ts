@@ -108,7 +108,7 @@ export const dtpNightInfo = `Сфотографируете место ДТП т
 export const balanceKeyboard = Markup.inlineKeyboard([
     [Markup.button.callback('Пополнить переводом', 'balance_add')],
     [Markup.button.callback('Как снять деньги?', 'balance_withdraw')],
-    [Markup.button.url('Элемент Водитель', 'https://play.google.com/store/apps/details?id=ru.yota.taxi.driver')],
+    [Markup.button.callback('Элемент водитель', 'element_driver')], // Изменено с URL на callback
     [Markup.button.callback('Меню', 'back_to_main')]
 ]);
 
