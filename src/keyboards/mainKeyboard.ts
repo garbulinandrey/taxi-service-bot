@@ -108,7 +108,7 @@ export const dtpNightInfo = `Сфотографируете место ДТП т
 export const balanceKeyboard = Markup.inlineKeyboard([
     [Markup.button.callback('Пополнить переводом', 'balance_add')],
     [Markup.button.callback('Как снять деньги?', 'balance_withdraw')],
-    [Markup.button.callback('Элемент водитель', 'element_driver')], // Изменено с URL на callback
+    [Markup.button.callback('Элемент водитель', 'element_driver')], // Это правильно
     [Markup.button.callback('Меню', 'back_to_main')]
 ]);
 
@@ -139,6 +139,7 @@ export const balanceWithdrawInfo = `Вывод средств производи
 
 // Клавиатура для дальних поездок
 export const longDistanceKeyboard = Markup.inlineKeyboard([
+    [Markup.button.url('Владимир Коротков', 'https://t.me/VV_Korotkov')],
     [Markup.button.callback('Меню', 'back_to_main')]
 ]);
 
