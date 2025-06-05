@@ -50,8 +50,6 @@ const URLS = {
 
 // Создаем экземпляр бота
 const bot = new Telegraf<MyContext>(config.BOT_TOKEN);
-// Создаем экземпляр бота
-const bot = new Telegraf<MyContext>(config.BOT_TOKEN);
 
 /**
  * Инициализируем сессионное хранилище
@@ -212,25 +210,30 @@ bot.action('service_appointment', async (ctx) => {
 });
 
 /**
- * Обработчик для вопросов по работе автомобиля
+ * Обработчик кнопки "Вопросы по работе автомобиля"
  */
 bot.action('car_questions', async (ctx) => {
     try {
-        await updateMessage(
-            ctx,
-            'Позвоните на сервис\n34-45-55 (+79297344555)\nили\n\nTelegram\n[Владимиром Коротковым](https://t.me/VV_Korotkov) по телефону (+79371133324)\nЦентральный\n\nв рабочее время с 9-00 до 18-00',
-            { ...serviceKeyboard, parse_mode: 'Markdown' }
-        );
+        if (ctx.session.messageId && ctx.chat) {
+            try {
+                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+            } catch (error) {
+                console.error('Ошибка при удалении предыдущего сообщения:', error);
+            }
+        }
 
-        await ctx.reply('Telegram\nVladimir', {
+        const msg = await ctx.reply('Позвоните на сервис 34-45-55 (+79297344555)nили Владимиру Короткову в рабочее время с 9-00 до 18-00', {
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: 'НАПИСАТЬ', url: 'https://t.me/VV_Korotkov' }]
+                    [{ text: 'Владимир Коротков', url: 'https://t.me/VV_Korotkov' }],
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
                 ]
             }
         });
+
+        ctx.session.messageId = msg.message_id;
     } catch (error) {
-        console.error('Ошибка в обработчике вопросов по автомобилю:', error);
+        console.error('Ошибка в обработчике вопросов по работе автомобиля:', error);
     }
 });
 
@@ -255,7 +258,40 @@ bot.action('dtp_night', async (ctx) => {
         console.error('Ошибка в обработчике ночного ДТП:', error);
     }
 });
+/**
+ * Обработчик кнопки "Элемент водитель"
+ */
+bot.action('element_driver', async (ctx) => {
+    try {
+        if (ctx.session.messageId && ctx.chat) {
+            try {
+                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+            } catch (error) {
+                console.error('Ошибка при удалении предыдущего сообщения:', error);
+            }
+        }
 
+        // Отправляем изображение с подписью и кнопками
+        const msg = await ctx.replyWithPhoto(
+            { source: './src/assets/images/element_driver_app.png' },
+            {
+                caption: 'Выберите платформу для скачивания приложения:',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: 'Android', url: URLS.ANDROID_DRIVER_APP }],
+                        [{ text: 'iPhone', url: URLS.IPHONE_DRIVER_APP }],
+                        [{ text: 'Меню', callback_data: 'back_to_main' }]
+                    ]
+                }
+            }
+        );
+
+        ctx.session.messageId = msg.message_id;
+        ctx.session.isPhotoMessage = true;
+    } catch (error) {
+        console.error('Ошибка в обработчике Element Driver:', error);
+    }
+});
 /**
  * Обработчик кнопки "Пополнить/снять с баланса"
  */
@@ -302,29 +338,22 @@ bot.action('long_distance', async (ctx) => {
             }
         }
 
-        await ctx.replyWithPhoto(
+        const msg = await ctx.replyWithPhoto(
             { source: './src/assets/images/map.png' },
             {
                 caption: 'На автомобиле Вы можете передвигаться по всей Республике и в пределах области отмеченной на карте. ' +
                         'Если Вы выезжаете за пределы данной области автомобиль заблокируется. Будьте внимательны!\n\n' +
-                        'в рабочее время с 9-00 до 18-00',
-                parse_mode: 'Markdown'
+                        'Согласовать поездку Вы можете с Владимиром Коротковым в рабочее время.',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: 'Владимир Коротков', url: 'https://t.me/VV_Korotkov' }],
+                        [{ text: 'Меню', callback_data: 'back_to_main' }]
+                    ]
+                }
             }
         );
 
-        await ctx.reply('Telegram\nVladimir', {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: 'НАПИСАТЬ', url: 'https://t.me/VV_Korotkov' }]
-                ]
-            }
-        });
-
-        const keyboardMsg = await ctx.reply('Выберите действие:', { 
-            ...longDistanceKeyboard
-        });
-
-        ctx.session.messageId = keyboardMsg.message_id;
+        ctx.session.messageId = msg.message_id;
         ctx.session.isPhotoMessage = true;
     } catch (error) {
         console.error('Ошибка в обработчике дальних поездок:', error);
