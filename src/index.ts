@@ -2,7 +2,7 @@
  * @file index.ts
  * @description Основной файл бота такси-сервиса
  * @author garbulinandrey
- * @date 2025-06-05 08:05:48
+ * @date 2025-06-05 13:06:51
  * @copyright Yotaxi LLC
  */
 
@@ -40,8 +40,10 @@ import {
     returnCarInfo,
     returnCarKeyboard,
     groupsInfo,
-    groupsKeyboard
+    groupsKeyboard,
+    feedbackKeyboard
 } from './keyboards/mainKeyboard';
+
 // Добавить здесь, перед созданием экземпляра бота
 const URLS = {
     ANDROID_DRIVER_APP: 'https://play.google.com/store/apps/details?id=com.naughtysoft.TtcDriver',
@@ -203,9 +205,9 @@ bot.action('service', async (ctx) => {
 });
 
 /**
- * Обработчик кнопки "Вопросы по работе автомобиля"
+ * Обработчик для записи на ТО или ремонт
  */
-bot.action('car_questions', async (ctx) => {
+bot.action('service_appointment', async (ctx) => {
     try {
         if (ctx.session.messageId && ctx.chat) {
             try {
@@ -215,10 +217,9 @@ bot.action('car_questions', async (ctx) => {
             }
         }
 
-        const msg = await ctx.reply('Позвоните на сервис 34-45-55 (+79297344555)\nили Владимиру Короткову в рабочее время с 9-00 до 18-00', {
+        const msg = await ctx.reply('Позвоните на сервис 34-45-55 (+79297344555)', {
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: 'Владимир Коротков', url: 'https://t.me/VV_Korotkov' }],
                     [{ text: 'Меню', callback_data: 'back_to_main' }]
                 ]
             }
@@ -226,9 +227,10 @@ bot.action('car_questions', async (ctx) => {
 
         ctx.session.messageId = msg.message_id;
     } catch (error) {
-        console.error('Ошибка в обработчике вопросов по работе автомобиля:', error);
+        console.error('Ошибка в обработчике записи на сервис:', error);
     }
 });
+
 /**
  * Обработчик кнопки "Вопросы по работе автомобиля"
  */
@@ -242,7 +244,7 @@ bot.action('car_questions', async (ctx) => {
             }
         }
 
-        const msg = await ctx.reply('Позвоните на сервис 34-45-55 (+79297344555)nили Владимиру Короткову в рабочее время с 9-00 до 18-00', {
+        const msg = await ctx.reply('Позвоните на сервис 34-45-55 (+79297344555)\nили Владимиру Короткову в рабочее время с 9-00 до 18-00', {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: 'Владимир Коротков', url: 'https://t.me/VV_Korotkov' }],
@@ -278,6 +280,7 @@ bot.action('dtp_night', async (ctx) => {
         console.error('Ошибка в обработчике ночного ДТП:', error);
     }
 });
+
 /**
  * Обработчик кнопки "Элемент водитель"
  */
@@ -291,7 +294,6 @@ bot.action('element_driver', async (ctx) => {
             }
         }
 
-        // Отправляем изображение с подписью и кнопками
         const msg = await ctx.replyWithPhoto(
             { source: './src/assets/images/element_driver_app.png' },
             {
@@ -312,6 +314,7 @@ bot.action('element_driver', async (ctx) => {
         console.error('Ошибка в обработчике Element Driver:', error);
     }
 });
+
 /**
  * Обработчик кнопки "Пополнить/снять с баланса"
  */
@@ -373,55 +376,4 @@ bot.action('long_distance', async (ctx) => {
             }
         );
 
-        ctx.session.messageId = msg.message_id;
-        ctx.session.isPhotoMessage = true;
-    } catch (error) {
-        console.error('Ошибка в обработчике дальних поездок:', error);
-    }
-});
-
-/**
- * Обработчик кнопки "Ссылки на группы"
- */
-bot.action('groups', async (ctx) => {
-    try {
-        await updateMessage(ctx, groupsInfo, { ...groupsKeyboard });
-    } catch (error) {
-        console.error('Ошибка в обработчике групп:', error);
-    }
-});
-
-/**
- * Обработчик для возврата в главное меню
- */
-bot.action('back_to_main', async (ctx) => {
-    try {
-        await updateMessage(ctx, 'Выберите действие:', { ...mainKeyboard });
-    } catch (error) {
-        console.error('Ошибка при возврате в главное меню:', error);
-    }
-});
-
-/**
- * Обработчик для неизвестных действий
- */
-bot.action(/.+/, async (ctx) => {
-    try {
-        await ctx.answerCbQuery('Данная функция в разработке');
-    } catch (error) {
-        console.error('Ошибка в обработчике неизвестного действия:', error);
-    }
-});
-
-// Запуск бота
-bot.launch()
-    .then(() => {
-        console.log('Бот успешно запущен');
-    })
-    .catch((error) => {
-        console.error('Ошибка при запуске бота:', error);
-    });
-
-// Корректное завершение работы бота
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+        ctx.session
