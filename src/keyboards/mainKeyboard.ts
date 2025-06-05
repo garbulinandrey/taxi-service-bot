@@ -16,9 +16,8 @@ export const mainKeyboard = Markup.inlineKeyboard([
     [Markup.button.callback('Ссылки на группы', 'groups')],
     [Markup.button.callback('Дальние поездки', 'long_distance')],
     [Markup.button.callback('Жалобы/Предложения', 'complaints')],
-    [Markup.button.callback('Вопросы/Предложения по боту', 'bot_questions')]
+    [Markup.button.callback('Вопросы/Предложения по боту', 'bot_feedback')] // Изменено с 'bot_questions' на 'bot_feedback'
 ]);
-
 // Текст для вопросов по работе
 export const workQuestionInfo = `График работы офиса:
 
