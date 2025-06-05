@@ -2,4 +2,7 @@ node_modules/
 dist/
 .env
 .DS_Store
-*.log
+*.log# Ignore archives
+*.rar
+*.zip
+*.7z
