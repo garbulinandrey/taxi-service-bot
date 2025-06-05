@@ -51,7 +51,7 @@ const URLS = {
 
 // Создаем экземпляр бота
 const bot = new Telegraf<MyContext>(config.BOT_TOKEN);
-
+bot.telegram.deleteMyCommands();
 /**
  * Инициализируем сессионное хранилище
  * Это нужно для хранения ID сообщений и информации о типе сообщения
@@ -145,6 +145,10 @@ async function updateMessage(ctx: MyContext, text: string, keyboard: any) {
  */
 bot.command('start', async (ctx) => {
     try {
+        if (ctx.session.messageId && ctx.chat) {
+            try {// Удаляем меню клавиатуры при каждом старте
+        await ctx.telegram.deleteMyCommands();
+        
         if (ctx.session.messageId && ctx.chat) {
             try {
                 await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
