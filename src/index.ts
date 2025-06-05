@@ -2,7 +2,7 @@
  * @file index.ts
  * @description Основной файл бота такси-сервиса
  * @author garbulinandrey
- * @date 2025-06-05 15:33:10
+ * @date 2025-06-05 15:54:08
  * @copyright Yotaxi LLC
  */
 
@@ -51,7 +51,12 @@ const URLS = {
 
 // Создаем экземпляр бота
 const bot = new Telegraf<MyContext>(config.BOT_TOKEN);
-bot.telegram.deleteMyCommands();
+
+// Удаляем команды меню при инициализации бота
+bot.telegram.deleteMyCommands().catch(error => {
+    console.error('Ошибка при удалении команд меню:', error);
+});
+
 /**
  * Инициализируем сессионное хранилище
  * Это нужно для хранения ID сообщений и информации о типе сообщения
@@ -145,8 +150,7 @@ async function updateMessage(ctx: MyContext, text: string, keyboard: any) {
  */
 bot.command('start', async (ctx) => {
     try {
-        if (ctx.session.messageId && ctx.chat) {
-            try {// Удаляем меню клавиатуры при каждом старте
+        // Удаляем меню клавиатуры при каждом старте
         await ctx.telegram.deleteMyCommands();
         
         if (ctx.session.messageId && ctx.chat) {
@@ -556,3 +560,4 @@ bot.launch()
 // Корректное завершение работы бота
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+ 
