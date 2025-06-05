@@ -2,7 +2,8 @@
  * @file mainKeyboard.ts
  * @description Клавиатуры и тексты для бота такси-сервиса
  * @author garbulinandrey
- * @date 2025-05-27 15:40:24
+ * @date 2025-06-05 14:47:47
+ * @copyright Yotaxi LLC
  */
 
 import { Markup } from 'telegraf';
@@ -16,8 +17,11 @@ export const mainKeyboard = Markup.inlineKeyboard([
     [Markup.button.callback('Ссылки на группы', 'groups')],
     [Markup.button.callback('Дальние поездки', 'long_distance')],
     [Markup.button.callback('Жалобы/Предложения', 'complaints')],
-    [Markup.button.callback('Вопросы/Предложения по боту', 'bot_feedback')] // Изменено с 'bot_questions' на 'bot_feedback'
+    [Markup.button.callback('Вопросы/Предложения по боту', 'bot_questions')],
+    [Markup.button.url('Ц-Бот ( переключение нал/безнал)', 'https://t.me/CParkYandex_bot')]
 ]);
+
+// Остальной код файла оставляем без изменений...
 // Текст для вопросов по работе
 export const workQuestionInfo = `График работы офиса:
 

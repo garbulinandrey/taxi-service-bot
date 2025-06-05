@@ -2,7 +2,7 @@
  * @file index.ts
  * @description Основной файл бота такси-сервиса
  * @author garbulinandrey
- * @date 2025-06-05 13:06:51
+ * @date 2025-06-05 14:42:07
  * @copyright Yotaxi LLC
  */
 
@@ -40,8 +40,7 @@ import {
     returnCarInfo,
     returnCarKeyboard,
     groupsInfo,
-    groupsKeyboard,
-    feedbackKeyboard
+    groupsKeyboard
 } from './keyboards/mainKeyboard';
 
 // Добавить здесь, перед созданием экземпляра бота
@@ -348,7 +347,36 @@ bot.action('balance_withdraw', async (ctx) => {
     }
 });
 // ... предыдущий код ...
+/**
+ * Обработчик кнопки "Ссылки на группы"
+ */
+bot.action('groups', async (ctx) => {
+    try {
+        if (ctx.session.messageId && ctx.chat) {
+            try {
+                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+            } catch (error) {
+                console.error('Ошибка при удалении предыдущего сообщения:', error);
+            }
+        }
 
+        const msg = await ctx.reply(groupsInfo, {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Чат Центральный и Yotaxi', url: 'https://t.me/+Vh5NhM54_V2lgJBP' }],
+                    [{ text: 'Розыгрыши здесь', url: 'https://t.me/yotaxi12' }],
+                    [{ text: 'Машины под выкуп', url: 'https://t.me/+62DE0gWGFBFlYWEy' }],
+                    [{ text: 'Помощь ТаксиЙо', url: 'https://t.me/+nFmk7sLJ-r41NmU6' }],
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
+                ]
+            }
+        });
+
+        ctx.session.messageId = msg.message_id;
+    } catch (error) {
+        console.error('Ошибка в обработчике групп:', error);
+    }
+});
 /**
  * Обработчик кнопки "Дальние поездки"
  */
