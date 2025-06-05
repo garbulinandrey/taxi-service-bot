@@ -179,13 +179,21 @@ bot.action('service', async (ctx) => {
             }
         }
 
-        const msg = await ctx.replyWithMediaGroup([{
+        const mediaMsg = await ctx.replyWithMediaGroup([{
             type: 'photo',
             media: { source: './src/assets/images/service_map.png' },
             caption: serviceInfo
         } as InputMediaPhoto]);
 
-        const keyboardMsg = await ctx.reply('Выберите действие:', { ...serviceKeyboard });
+        const keyboardMsg = await ctx.reply('Выберите действие:', { 
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Записаться на ТО или на ремонт автомобиля', callback_data: 'service_appointment' }],
+                    [{ text: 'Вопросы по работе автомобиля', callback_data: 'car_questions' }],
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
+                ]
+            }
+        });
 
         ctx.session.messageId = keyboardMsg.message_id;
         ctx.session.isPhotoMessage = true;
@@ -195,20 +203,32 @@ bot.action('service', async (ctx) => {
 });
 
 /**
- * Обработчик для записи на ТО или ремонт
+ * Обработчик кнопки "Вопросы по работе автомобиля"
  */
-bot.action('service_appointment', async (ctx) => {
+bot.action('car_questions', async (ctx) => {
     try {
-        await updateMessage(
-            ctx,
-            'Записаться на сервис можно по номеру:\n344-555 (+79297344555)',
-            { ...serviceKeyboard }
-        );
+        if (ctx.session.messageId && ctx.chat) {
+            try {
+                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+            } catch (error) {
+                console.error('Ошибка при удалении предыдущего сообщения:', error);
+            }
+        }
+
+        const msg = await ctx.reply('Позвоните на сервис 34-45-55 (+79297344555)\nили Владимиру Короткову в рабочее время с 9-00 до 18-00', {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Владимир Коротков', url: 'https://t.me/VV_Korotkov' }],
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
+                ]
+            }
+        });
+
+        ctx.session.messageId = msg.message_id;
     } catch (error) {
-        console.error('Ошибка в обработчике записи на сервис:', error);
+        console.error('Ошибка в обработчике вопросов по работе автомобиля:', error);
     }
 });
-
 /**
  * Обработчик кнопки "Вопросы по работе автомобиля"
  */
