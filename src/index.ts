@@ -1,9 +1,9 @@
 /**
  * @file index.ts
- * @description Основной файл бота такси-сервиса
+ * @description Основной файл бота автопарка "Центральный"
  * @author garbulinandrey
- * @date 2025-06-05 15:54:08
- * @copyright Yotaxi LLC
+ * @date 2025-06-05 21:32:04
+ * @copyright Центральный Автопарк
  */
 
 // Импорты из библиотек
@@ -43,14 +43,18 @@ import {
     groupsKeyboard
 } from './keyboards/mainKeyboard';
 
-// Добавить здесь, перед созданием экземпляра бота
+// Импорт сервиса OpenAI
+import { OpenAIService } from './services/openai.service';
+
+// Константы
 const URLS = {
     ANDROID_DRIVER_APP: 'https://play.google.com/store/apps/details?id=com.naughtysoft.TtcDriver',
     IPHONE_DRIVER_APP: 'https://apps.apple.com/ru/app/element-%D0%BF%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B5-%D0%B2%D0%BE%D0%B4%D0%B8%D1%82%D0%B5%D0%BB%D1%8F/id1449354142'
 };
 
-// Создаем экземпляр бота
+// Создаем экземпляры бота и сервиса OpenAI
 const bot = new Telegraf<MyContext>(config.BOT_TOKEN);
+const openAIService = new OpenAIService();
 
 // Удаляем команды меню при инициализации бота
 bot.telegram.deleteMyCommands().catch(error => {
@@ -172,6 +176,121 @@ bot.command('start', async (ctx) => {
 });
 
 /**
+ * Обработчик текстовых сообщений для AI
+ */
+bot.on('text', async (ctx) => {
+    // Пропускаем команды
+    if (ctx.message.text.startsWith('/')) {
+        return;
+    }
+
+    try {
+        // Показываем пользователю, что бот печатает
+        await ctx.replyWithChatAction('typing');
+
+        const response = await openAIService.getResponse(ctx.message.text);
+
+        // Формируем клавиатуру в зависимости от intent
+        let keyboard;
+        switch (response.intent) {
+            case 'service':
+                keyboard = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: 'Позвонить в сервис', callback_data: 'call_service' }],
+                            [{ text: 'Меню', callback_data: 'back_to_main' }]
+                        ]
+                    }
+                };
+                break;
+            case 'car_question':
+                keyboard = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: 'Связаться с Владимиром', url: 'https://t.me/VV_Korotkov' }],
+                            [{ text: 'Позвонить в сервис', callback_data: 'call_service' }],
+                            [{ text: 'Меню', callback_data: 'back_to_main' }]
+                        ]
+                    }
+                };
+                break;
+            case 'dtp':
+                keyboard = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: 'Связаться с Рузалем', url: 'https://t.me/ruzalru' }],
+                            [{ text: 'Меню', callback_data: 'back_to_main' }]
+                        ]
+                    }
+                };
+                break;
+            case 'fine_check':
+                keyboard = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                { text: 'Android', url: URLS.ANDROID_DRIVER_APP },
+                                { text: 'iPhone', url: URLS.IPHONE_DRIVER_APP }
+                            ],
+                            [{ text: 'Меню', callback_data: 'back_to_main' }]
+                        ]
+                    }
+                };
+                break;
+            case 'long_distance':
+                keyboard = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: 'Связаться с Владимиром', url: 'https://t.me/VV_Korotkov' }],
+                            [{ text: 'Меню', callback_data: 'back_to_main' }]
+                        ]
+                    }
+                };
+                break;
+            case 'sick_leave':
+                keyboard = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: 'Связаться с офисом', url: 'https://t.me/+79278835566' }],
+                            [{ text: 'Меню', callback_data: 'back_to_main' }]
+                        ]
+                    }
+                };
+                break;
+            default:
+                keyboard = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: 'Меню', callback_data: 'back_to_main' }]
+                        ]
+                    }
+                };
+        }
+
+        // Отправляем ответ
+        const msg = await ctx.reply(response.response, {
+            ...keyboard,
+            parse_mode: 'Markdown',
+            disable_web_page_preview: false
+        });
+
+        // Сохраняем ID сообщения в сессии
+        ctx.session.messageId = msg.message_id;
+        ctx.session.isPhotoMessage = false;
+
+    } catch (error) {
+        console.error('Ошибка при обработке сообщения OpenAI:', error);
+        await ctx.reply('Извините, произошла ошибка при обработке вашего запроса. Пожалуйста, попробуйте позже или воспользуйтесь меню.', {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
+                ]
+            }
+        });
+    }
+});
+
+/**
  * Обработчик кнопки "Вопрос по работе"
  */
 bot.action('work_question', async (ctx) => {
@@ -190,28 +309,6 @@ bot.action('sick_leave', async (ctx) => {
         await updateMessage(ctx, sickLeaveInfo, sickLeaveKeyboard);
     } catch (error) {
         console.error('Ошибка в обработчике больничного:', error);
-    }
-});
-
-/**
- * Обработчик кнопки "Нужна помощь с программой"
- */
-bot.action('program_help', async (ctx) => {
-    try {
-        await updateMessage(ctx, programHelpInfo, programHelpKeyboard);
-    } catch (error) {
-        console.error('Ошибка в обработчике помощи с программой:', error);
-    }
-});
-
-/**
- * Обработчик кнопки "Хочу сдать автомобиль"
- */
-bot.action('return_car', async (ctx) => {
-    try {
-        await updateMessage(ctx, returnCarInfo, returnCarKeyboard);
-    } catch (error) {
-        console.error('Ошибка в обработчике сдачи автомобиля:', error);
     }
 });
 
@@ -437,6 +534,28 @@ bot.action('long_distance', async (ctx) => {
 });
 
 /**
+ * Обработчик кнопки "Нужна помощь с программой"
+ */
+bot.action('program_help', async (ctx) => {
+    try {
+        await updateMessage(ctx, programHelpInfo, programHelpKeyboard);
+    } catch (error) {
+        console.error('Ошибка в обработчике помощи с программой:', error);
+    }
+});
+
+/**
+ * Обработчик кнопки "Хочу сдать автомобиль"
+ */
+bot.action('return_car', async (ctx) => {
+    try {
+        await updateMessage(ctx, returnCarInfo, returnCarKeyboard);
+    } catch (error) {
+        console.error('Ошибка в обработчике сдачи автомобиля:', error);
+    }
+});
+
+/**
  * Обработчик кнопки "Жалобы/предложения"
  */
 bot.action('complaints', async (ctx) => {
@@ -462,35 +581,6 @@ bot.action('complaints', async (ctx) => {
         ctx.session.messageId = msg.message_id;
     } catch (error) {
         console.error('Ошибка в обработчике жалоб и предложений:', error);
-    }
-});
-
-/**
- * Обработчик кнопки "Вопросы/Предложения по боту"
- */
-bot.action('bot_questions', async (ctx) => {
-    try {
-        if (ctx.session.messageId && ctx.chat) {
-            try {
-                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
-            } catch (error) {
-                console.error('Ошибка при удалении предыдущего сообщения:', error);
-            }
-        }
-
-        const msg = await ctx.reply('Все предложения по боту можете направлять в офис менеджерам с пометкой Бот.\n+79278835566 Офис', {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: 'Офис', url: 'https://t.me/+79278835566' }],
-                    [{ text: 'Меню', callback_data: 'back_to_main' }]
-                ]
-            },
-            parse_mode: 'Markdown'
-        });
-
-        ctx.session.messageId = msg.message_id;
-    } catch (error) {
-        console.error('Ошибка в обработчике обратной связи по боту:', error);
     }
 });
 
@@ -523,6 +613,35 @@ bot.action('groups', async (ctx) => {
         ctx.session.messageId = msg.message_id;
     } catch (error) {
         console.error('Ошибка в обработчике групп:', error);
+    }
+});
+
+/**
+ * Обработчик кнопки "Вопросы/Предложения по боту"
+ */
+bot.action('bot_questions', async (ctx) => {
+    try {
+        if (ctx.session.messageId && ctx.chat) {
+            try {
+                await ctx.telegram.deleteMessage(ctx.chat.id, ctx.session.messageId);
+            } catch (error) {
+                console.error('Ошибка при удалении предыдущего сообщения:', error);
+            }
+        }
+
+        const msg = await ctx.reply('Все предложения по боту можете направлять в офис менеджерам с пометкой Бот.\n+79278835566 Офис', {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: 'Офис', url: 'https://t.me/+79278835566' }],
+                    [{ text: 'Меню', callback_data: 'back_to_main' }]
+                ]
+            },
+            parse_mode: 'Markdown'
+        });
+
+        ctx.session.messageId = msg.message_id;
+    } catch (error) {
+        console.error('Ошибка в обработчике обратной связи по боту:', error);
     }
 });
 
@@ -560,4 +679,3 @@ bot.launch()
 // Корректное завершение работы бота
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
- 
